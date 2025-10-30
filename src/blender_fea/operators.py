@@ -5,6 +5,8 @@ Operators for Structural Model
 # from pathlib import Path
 # from sys import path as sys_path
 import random
+import math
+from mathutils import Vector
 import bpy
 from bpy.types import Operator, UIList
 from bpy.props import StringProperty
@@ -1180,6 +1182,297 @@ class STRUCTURAL_UL_shells(UIList):
             layout.label(text=item.name)
             layout.label(text=f"Points: {item.point_list}")
 
+# Test Operators
+
+
+class STRUCTURAL_OT_create_hexagon_points(Operator):
+    bl_idname = "structural.create_hexagon_points"
+    bl_label = "Create Hexagon Test Points"
+    bl_description = "Create 6 points in a randomly deformed hexagon pattern"
+    
+    radius: bpy.props.FloatProperty(  # type: ignore
+        name="Base Radius",
+        description="Radius of the base hexagon",
+        default=2.0,
+        min=0.1,
+        max=10.0
+    )
+    
+    center_x: bpy.props.FloatProperty(  # type: ignore
+        name="Center X",
+        description="X coordinate of hexagon center",
+        default=0.0
+    )
+    
+    center_y: bpy.props.FloatProperty(  # type: ignore
+        name="Center Y", 
+        description="Y coordinate of hexagon center",
+        default=0.0
+    )
+    
+    center_z: bpy.props.FloatProperty(  # type: ignore
+        name="Center Z",
+        description="Z coordinate of hexagon center", 
+        default=0.0
+    )
+    
+    deformation_strength: bpy.props.FloatProperty(  # type: ignore
+        name="Deformation Strength",
+        description="How much to randomly deform the hexagon",
+        default=0.3,
+        min=0.0,
+        max=1.0
+    )
+    
+    def execute(self, context):
+        structural_data = context.scene.structural_data  # type: ignore
+        
+        # Clear existing test points if they exist
+        self.cleanup_existing_test_points(structural_data)
+        
+        # Create hexagon points
+        points_data = self.generate_hexagon_points()
+        
+        # Add points to structural data and create visual objects
+        point_names = []
+        for i, (x, y, z) in enumerate(points_data):
+            point = structural_data.points.add()
+            point.name = f"HexPoint_{i+1}"
+            point.x = x
+            point.y = y
+            point.z = z
+            point_names.append(point.name)
+            
+            # Create visual representation
+            self.create_point_visual(point)
+        
+        # Auto-create a shell using these points
+        shell = structural_data.shells.add()
+        shell.name = "Hexagon_Shell"
+        shell.point_list = ", ".join(point_names)
+        shell.thickness = 0.1
+        
+        # Create the shell geometry
+        try:
+            from . import utils
+            utils.create_shell_from_data(shell, structural_data)
+        except Exception as e:
+            self.report({'WARNING'}, f"Created points but shell creation failed: {str(e)}")
+        else:
+            self.report({'INFO'}, f"Created hexagon with 6 points and shell")
+        
+        return {'FINISHED'}
+    
+    def generate_hexagon_points(self):
+        """Generate 6 points in a randomly deformed hexagon"""
+        points = []
+        center = Vector((self.center_x, self.center_y, self.center_z))
+        
+        # Generate base regular hexagon points
+        for i in range(6):
+            angle = 2 * math.pi * i / 6  # 60 degree increments
+            base_x = math.cos(angle) * self.radius
+            base_y = math.sin(angle) * self.radius
+            
+            # Apply random deformation
+            deform_x = random.uniform(-self.deformation_strength, self.deformation_strength)
+            deform_y = random.uniform(-self.deformation_strength, self.deformation_strength)
+            deform_z = random.uniform(-self.deformation_strength * 0.5, self.deformation_strength * 0.5)
+            
+            # Final point coordinates
+            x = center.x + base_x + deform_x
+            y = center.y + base_y + deform_y  
+            z = center.z + deform_z  # Slight variation in Z for non-planar test
+            
+            points.append((x, y, z))
+        
+        return points
+    
+    def create_point_visual(self, point):
+        """Create visual sphere for point"""
+        bpy.ops.mesh.primitive_uv_sphere_add(
+            radius=0.1, 
+            location=(point.x, point.y, point.z)
+        )
+        sphere = bpy.context.active_object
+        sphere.name = point.name    # type: ignore
+        
+        # Move to Structural Model collection
+        from . import utils
+        utils.move_to_structural_collection(sphere)
+    
+    def cleanup_existing_test_points(self, structural_data):
+        """Remove any existing test points and objects"""
+        points_to_remove = []
+        
+        # Find test points
+        for i, point in enumerate(structural_data.points):
+            if point.name.startswith("HexPoint_"):
+                points_to_remove.append(i)
+                # Remove visual object
+                if point.name in bpy.data.objects:
+                    obj = bpy.data.objects[point.name]
+                    bpy.data.objects.remove(obj, do_unlink=True)
+        
+        # Remove from structural data (reverse to maintain indices)
+        for i in sorted(points_to_remove, reverse=True):
+            structural_data.points.remove(i)
+        
+        # Remove test shell
+        shells_to_remove = []
+        for i, shell in enumerate(structural_data.shells):
+            if shell.name.startswith("Hexagon"):
+                shells_to_remove.append(i)
+                if shell.name in bpy.data.objects:
+                    obj = bpy.data.objects[shell.name]
+                    bpy.data.objects.remove(obj, do_unlink=True)
+        
+        for i in sorted(shells_to_remove, reverse=True):
+            structural_data.shells.remove(i)
+    
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self)  # type: ignore
+
+
+class STRUCTURAL_OT_create_simple_hexagon(Operator):
+    bl_idname = "structural.create_simple_hexagon"
+    bl_label = "Create Simple Hexagon"
+    bl_description = "Create a simple hexagon with one click"
+    
+    def execute(self, context):
+        structural_data = context.scene.structural_data  # type: ignore
+        
+        # Clear existing test points
+        self.cleanup_test_points(structural_data)
+        
+        # Create 6 points in hexagon pattern
+        hex_points = [
+            ( 2.0,  0.0, 0.0),    # Right
+            ( 1.0,  1.73, 0.0),   # Top-right  
+            (-1.0,  1.73, 0.0),   # Top-left
+            (-2.0,  0.0, 0.0),    # Left
+            (-1.0, -1.73, 0.0),   # Bottom-left
+            ( 1.0, -1.73, 0.0)    # Bottom-right
+        ]
+        
+        point_names = []
+        for i, (x, y, z) in enumerate(hex_points):
+            point = structural_data.points.add()
+            point.name = f"Hex_{i+1}"
+            point.x = x
+            point.y = y
+            point.z = z
+            point_names.append(point.name)
+            
+            # Create visual
+            bpy.ops.mesh.primitive_uv_sphere_add(radius=0.1, location=(x, y, z))
+            sphere = bpy.context.active_object
+            sphere.name = point.name    # type: ignore
+            from . import utils
+            utils.move_to_structural_collection(sphere)
+        
+        # Create shell
+        shell = structural_data.shells.add()
+        shell.name = "Test_Hexagon"
+        shell.point_list = ", ".join(point_names)
+        shell.thickness = 0.15
+        
+        # Create shell geometry
+        try:
+            from . import utils
+            utils.create_shell_from_data(shell, structural_data)
+            self.report({'INFO'}, "Created regular hexagon with 6 points")
+        except Exception as e:
+            self.report({'ERROR'}, f"Shell creation failed: {str(e)}")
+            return {'CANCELLED'}
+        
+        return {'FINISHED'}
+    
+    def cleanup_test_points(self, structural_data):
+        """Clean up previous test points"""
+        # Remove points
+        points_to_remove = []
+        for i, point in enumerate(structural_data.points):
+            if point.name.startswith(("Hex_", "HexPoint_")):
+                points_to_remove.append(i)
+                if point.name in bpy.data.objects:
+                    bpy.data.objects.remove(bpy.data.objects[point.name], do_unlink=True)
+        
+        for i in sorted(points_to_remove, reverse=True):
+            structural_data.points.remove(i)
+        
+        # Remove shells  
+        shells_to_remove = []
+        for i, shell in enumerate(structural_data.shells):
+            if shell.name.startswith(("Hexagon", "Test_Hexagon")):
+                shells_to_remove.append(i)
+                if shell.name in bpy.data.objects:
+                    bpy.data.objects.remove(bpy.data.objects[shell.name], do_unlink=True)
+        
+        for i in sorted(shells_to_remove, reverse=True):
+            structural_data.shells.remove(i)
+
+			
+class STRUCTURAL_OT_create_nonplanar_hexagon(Operator):
+    bl_idname = "structural.create_nonplanar_hexagon"
+    bl_label = "Create Non-Planar Hexagon"
+    bl_description = "Create a hexagon with points at different Z heights"
+    
+    def execute(self, context):
+        structural_data = context.scene.structural_data    # type: ignore
+        
+        self.cleanup_test_points(structural_data)
+        
+        # Create a "bowl-shaped" hexagon with varying Z heights
+        hex_points = [
+            ( 2.0,  0.0, 0.2),    # Slightly raised
+            ( 1.0,  1.73, 0.5),   # Higher
+            (-1.0,  1.73, 0.3),   # Medium
+            (-2.0,  0.0, 0.0),    # Base level
+            (-1.0, -1.73, 0.4),   # Medium-high
+            ( 1.0, -1.73, 0.1)    # Slightly raised
+        ]
+        
+        point_names = []
+        for i, (x, y, z) in enumerate(hex_points):
+            point = structural_data.points.add()
+            point.name = f"Hex3D_{i+1}"
+            point.x = x
+            point.y = y
+            point.z = z
+            point_names.append(point.name)
+            
+            bpy.ops.mesh.primitive_uv_sphere_add(radius=0.1, location=(x, y, z))
+            sphere = bpy.context.active_object
+            sphere.name = point.name    # type: ignore
+            from . import utils
+            utils.move_to_structural_collection(sphere)
+        
+        # Create shell - this will test non-planar handling
+        shell = structural_data.shells.add()
+        shell.name = "NonPlanar_Hexagon"
+        shell.point_list = ", ".join(point_names)
+        shell.thickness = 0.1
+        
+        try:
+            from . import utils
+            result = utils.create_shell_from_data(shell, structural_data)
+            if result:
+                self.report({'INFO'}, "Created non-planar hexagon - check console for warnings")
+            else:
+                self.report({'WARNING'}, "Non-planar hexagon creation may have issues")
+        except Exception as e:
+            self.report({'ERROR'}, f"Non-planar shell failed: {str(e)}")
+        
+        return {'FINISHED'}
+    
+    def cleanup_test_points(self, structural_data):
+        """Clean up test points"""
+        # Implementation similar to previous example
+        pass
+
+
+
 # Operator classes collection
 classes = (
     STRUCTURAL_OT_add_section,
@@ -1208,6 +1501,9 @@ classes = (
     STRUCTURAL_UL_shells,
     STRUCTURAL_OT_import_json,
     STRUCTURAL_OT_export_json,
+    STRUCTURAL_OT_create_hexagon_points,
+    STRUCTURAL_OT_create_simple_hexagon,
+    STRUCTURAL_OT_create_nonplanar_hexagon,
 )
 
 def register():

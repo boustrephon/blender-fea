@@ -129,7 +129,7 @@ class VIEW3D_PT_structural_sections(Panel):
                 box.prop(section, "sides")
                 box.prop(section, "poly_diameter")
 
-class STRUCTURAL_PT_visualization(bpy.types.Panel):
+class STRUCTURAL_PT_visualization(Panel):
     bl_label = "Beam Visualization"
     bl_idname = "STRUCTURAL_PT_visualization"
     bl_space_type = 'VIEW_3D'
@@ -194,6 +194,23 @@ class VIEW3D_PT_structural_shells(Panel):
             box.prop(shell, "thickness")
             box.operator("structural.update_shell", text="Update Shell")
 
+
+# Testing...
+class STRUCTURAL_PT_test_objects(Panel):
+    bl_label = "Test Objects"
+    bl_idname = "STRUCTURAL_PT_test_objects"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = 'Structural'
+    
+    def draw(self, context):
+        layout = self.layout # This is your UILayout object        
+        layout.label(text="Hexagon Test Creation:")    # type: ignore
+        layout.operator("structural.create_hexagon_points", text="Custom Hexagon")    # type: ignore
+        layout.operator("structural.create_simple_hexagon", text="Simple Hexagon")     # type: ignore
+        layout.operator("structural.create_nonplanar_hexagon", text="Non-Planar Hexagon")    # type: ignore
+
+
 # Panel classes collection
 classes = (
     VIEW3D_PT_structural_modeling,
@@ -202,6 +219,7 @@ classes = (
     VIEW3D_PT_structural_shells,
     VIEW3D_PT_structural_sections,
     STRUCTURAL_PT_visualization,
+    STRUCTURAL_PT_test_objects,
 )
 
 def register():
