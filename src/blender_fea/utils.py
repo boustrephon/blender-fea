@@ -116,7 +116,7 @@ def move_to_structural_collection(obj):
     return obj
 
 def create_beam_from_data(beam, structural_data):
-    """Create beam geometry from beam data"""
+    """Create beam geometry from beam data with section properties"""
     start_coords = get_point_coordinates(beam.start_point, structural_data)
     end_coords = get_point_coordinates(beam.end_point, structural_data)
     
@@ -127,25 +127,91 @@ def create_beam_from_data(beam, structural_data):
     distance = (end_coords - start_coords).length
     center = (start_coords + end_coords) / 2
     
-    # Create cylinder with modern context handling
+    # Get section properties
+    section = get_section_by_name(beam.section_name, structural_data)
+    
+    if not section:
+        # Fallback to circular with diameter
+        section_type = 'CIRCULAR'
+        size1 = beam.diameter
+        size2 = beam.diameter
+        sides = 8
+    else:
+        section_type = section.section_type
+        if section_type == 'CIRCULAR':
+            size1 = section.diameter
+            size2 = section.diameter
+            sides = 8
+        elif section_type == 'RECTANGULAR':
+            size1 = section.width
+            size2 = section.height
+            sides = 4
+        elif section_type == 'POLYGONAL':
+            size1 = section.poly_diameter
+            size2 = section.poly_diameter
+            sides = section.sides
+    
+    # Create beam based on section type
+    if section_type == 'RECTANGULAR':
+        beam_obj = create_rectangular_beam(center, start_coords, end_coords, size1, size2, distance)
+    else:
+        # Circular or Polygonal
+        beam_obj = create_polygonal_beam(center, start_coords, end_coords, size1, sides, distance)
+    
+    beam_obj.name = beam.name
+    
+    # Move to Structural Model collection
+    move_to_structural_collection(beam_obj)
+    
+    return beam_obj
+
+def get_section_by_name(section_name, structural_data):
+    """Find section by name in structural data"""
+    for section in structural_data.sections:
+        if section.name == section_name:
+            return section
+    return None
+
+def create_rectangular_beam(center, start_coords, end_coords, width, height, distance):
+    """Create rectangular beam using cube primitive with correct orientation"""
+    with bpy.context.temp_override(**bpy.context.copy()):
+        bpy.ops.mesh.primitive_cube_add(size=1.0, location=center)
+    
+    beam_obj = bpy.context.active_object
+    
+    # Scale to rectangular cross-section
+    # Note: X=width, Y=height, Z=length (distance)
+    beam_obj.scale = (width/2, height/2, distance)
+    
+    # Apply scale
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+    
+    # Rotate to align with points
+    # We need to align the Z-axis (length) with the beam direction
+    direction = (end_coords - start_coords).normalized()
+    
+    # Create rotation to point Z-axis along the beam direction
+    beam_obj.rotation_euler = direction.to_track_quat('Z', 'Y').to_euler()
+    
+    return beam_obj
+
+def create_polygonal_beam(center, start_coords, end_coords, diameter, sides, distance):
+    """Create circular or polygonal beam using cylinder primitive with correct orientation"""
     with bpy.context.temp_override(**bpy.context.copy()):
         bpy.ops.mesh.primitive_cylinder_add(
-            vertices=8,
-            radius=beam.diameter/2,
-            depth=distance,
+            vertices=sides,
+            radius=diameter/2,
+            depth=distance,  # This should now be correct
             location=center
         )
     
     beam_obj = bpy.context.active_object
-    beam_obj.name = beam.name
     
     # Rotate to align with points
-    direction = end_coords - start_coords
+    # The cylinder primitive creates with depth along Z-axis
+    direction = (end_coords - start_coords).normalized()
     beam_obj.rotation_euler = direction.to_track_quat('Z', 'Y').to_euler()
     
-    # Move to Structural Model collection
-    move_to_structural_collection(beam_obj)
-
     return beam_obj
 
 def create_shell_from_data(shell, structural_data):

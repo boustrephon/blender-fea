@@ -87,8 +87,50 @@ class VIEW3D_PT_structural_beams(Panel):
             box.label(text=f"Beam: {beam.name}")
             box.prop_search(beam, "start_point", structural_data, "points", text="Start")
             box.prop_search(beam, "end_point", structural_data, "points", text="End")
-            box.prop(beam, "diameter")
+            
+            # Section selection
+            box.prop_search(beam, "section_name", structural_data, "sections", text="Section")
+            
+            # Legacy diameter (for backward compatibility)
+            if not beam.section_name:
+                box.prop(beam, "diameter")
+            
             box.operator("structural.update_beam", text="Update Beam")
+
+class VIEW3D_PT_structural_sections(Panel):
+    bl_label = "Section Profiles"
+    bl_idname = "VIEW3D_PT_structural_sections"
+    bl_parent_id = "VIEW3D_PT_structural_modeling"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    
+    def draw(self, context):
+        layout = self.layout
+        scene = context.scene
+        structural_data = scene.structural_data
+        
+        row = layout.row()
+        row.template_list("STRUCTURAL_UL_sections", "", structural_data, "sections", 
+                         structural_data, "active_section_index")
+        
+        col = row.column(align=True)
+        col.operator("structural.add_section", icon='ADD', text="")
+        col.operator("structural.delete_section", icon='REMOVE', text="")
+        
+        if structural_data.sections and structural_data.active_section_index >= 0:
+            section = structural_data.sections[structural_data.active_section_index]
+            box = layout.box()
+            box.label(text=f"Section: {section.name}")
+            box.prop(section, "section_type")
+            
+            if section.section_type == 'CIRCULAR':
+                box.prop(section, "diameter")
+            elif section.section_type == 'RECTANGULAR':
+                box.prop(section, "width")
+                box.prop(section, "height")
+            elif section.section_type == 'POLYGONAL':
+                box.prop(section, "sides")
+                box.prop(section, "poly_diameter")
 
 class VIEW3D_PT_structural_shells(Panel):
     bl_label = "Structural Shells"
@@ -125,6 +167,7 @@ classes = (
     VIEW3D_PT_structural_points,
     VIEW3D_PT_structural_beams,
     VIEW3D_PT_structural_shells,
+    VIEW3D_PT_structural_sections,
 )
 
 def register():
