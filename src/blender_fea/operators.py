@@ -421,7 +421,88 @@ class STRUCTURAL_OT_color_all_beams_with_sections(bpy.types.Operator):
         bsdf.inputs['Base Color'].default_value = color   # type: ignore
         return material
 
-
+class STRUCTURAL_OT_color_beams_emission(bpy.types.Operator):
+    bl_idname = "structural.color_beams_emission"
+    bl_label = "Color Beams (Emission - Super Bright)"
+    
+    emission_strength: bpy.props.FloatProperty(  # type: ignore
+        name="Emission Strength",
+        description="How bright the emission should be",
+        default=3.0,
+        min=1.0,
+        max=10.0
+    )
+    
+    def execute(self, context):
+        structural_data = context.scene.structural_data  # type: ignore
+        
+        beams_colored = 0
+        section_materials = {}
+        
+        for beam_data in structural_data.beams:
+            if not beam_data.section_name:
+                continue
+                
+            if beam_data.name in bpy.data.objects:
+                beam_obj = bpy.data.objects[beam_data.name]
+                
+                if beam_data.section_name not in section_materials:
+                    section_materials[beam_data.section_name] = self.create_emission_material(
+                        beam_data.section_name, self.emission_strength
+                    )
+                
+                beam_obj.data.materials.clear()
+                beam_obj.data.materials.append(section_materials[beam_data.section_name])
+                beams_colored += 1
+        
+        # Switch to material preview
+        for area in context.screen.areas:    # type: ignore
+            if area.type == 'VIEW_3D':
+                for space in area.spaces:
+                    if space.type == 'VIEW_3D':
+                        space.shading.type = 'MATERIAL'    # type: ignore
+        
+        self.report({'INFO'}, f"Applied emission colors to {beams_colored} beams")
+        return {'FINISHED'}
+    
+    def create_emission_material(self, section_name, emission_strength):
+        """Create emission-based material for maximum brightness"""
+        import hashlib
+        
+        mat_name = f"FEA_Emission_{section_name}"
+        
+        if mat_name in bpy.data.materials:
+            material = bpy.data.materials[mat_name]
+        else:
+            material = bpy.data.materials.new(name=mat_name)
+            material.use_nodes = True
+        
+        # Clear and setup emission nodes
+        material.node_tree.nodes.clear()    # type: ignore
+        
+        # Create emission shader
+        emission = material.node_tree.nodes.new(type='ShaderNodeEmission')    # type: ignore
+        output = material.node_tree.nodes.new(type='ShaderNodeOutputMaterial')    # type: ignore
+        material.node_tree.links.new(emission.outputs['Emission'], output.inputs['Surface'])    # type: ignore
+        
+        # Generate vibrant color
+        hash_hex = hashlib.md5(section_name.encode()).hexdigest()
+        r = int(hash_hex[0:2], 16) / 255.0
+        g = int(hash_hex[2:4], 16) / 255.0
+        b = int(hash_hex[4:6], 16) / 255.0
+        
+        # Make colors more vibrant
+        r = min(1.0, r * 1.5)
+        g = min(1.0, g * 1.5)
+        b = min(1.0, b * 1.5)
+        
+        emission.inputs['Color'].default_value = (r, g, b, 1.0)    # type: ignore
+        emission.inputs['Strength'].default_value = emission_strength    # type: ignore
+        
+        return material
+    
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self)    # type: ignore
 
 class STRUCTURAL_OT_add_shell(Operator):
     bl_idname = "structural.add_shell"
@@ -484,6 +565,342 @@ class STRUCTURAL_OT_update_shell(Operator):
             utils.create_shell_from_data(shell, structural_data)
         
         return {'FINISHED'}
+
+class STRUCTURAL_OT_color_shells_by_thickness(Operator):
+    bl_idname = "structural.color_shells_by_thickness"
+    bl_label = "Color Shells by Thickness"
+    
+    color_min: bpy.props.FloatVectorProperty(  # type: ignore
+        name="Min Thickness Color",
+        description="Color for minimum thickness",
+        default=(0.0, 0.0, 1.0, 1.0),  # Blue
+        size=4,
+        min=0.0,
+        max=1.0,
+        subtype='COLOR'
+    )
+    
+    color_max: bpy.props.FloatVectorProperty(  # type: ignore
+        name="Max Thickness Color", 
+        description="Color for maximum thickness",
+        default=(1.0, 0.0, 0.0, 1.0),  # Red
+        size=4,
+        min=0.0,
+        max=1.0,
+        subtype='COLOR'
+    )
+    
+    color_zero: bpy.props.FloatVectorProperty(  # type: ignore
+        name="Zero Thickness Color",
+        description="Color for zero/undefined thickness",
+        default=(0.5, 0.5, 0.5, 1.0),  # Gray
+        size=4,
+        min=0.0,
+        max=1.0,
+        subtype='COLOR'
+    )
+    
+    use_emission: bpy.props.BoolProperty(  # type: ignore
+        name="Use Emission",
+        description="Use emission shader for brighter colors",
+        default=True
+    )
+    
+    emission_strength: bpy.props.FloatProperty(  # type: ignore
+        name="Emission Strength",
+        description="Brightness of emission colors",
+        default=1.0,
+        min=0.1,
+        max=5.0
+    )
+    
+    def execute(self, context):
+        structural_data = context.scene.structural_data  # type: ignore
+        
+        if not structural_data.shells:
+            self.report({'WARNING'}, "No shells found to color")
+            return {'CANCELLED'}
+        
+        # Find thickness range (only positive thicknesses)
+        thicknesses = [shell.thickness for shell in structural_data.shells if shell.thickness > 0]
+        
+        shells_colored = 0
+        shells_with_zero = 0
+        shells_with_positive = 0
+        
+        if not thicknesses:
+            # All shells have zero or negative thickness
+            self.report({'WARNING'}, "No shells with positive thickness found - using zero thickness color")
+            
+            for shell_data in structural_data.shells:
+                if shell_data.name in bpy.data.objects:
+                    shell_obj = bpy.data.objects[shell_data.name]
+                    material = self.create_thickness_material(
+                        shell_data, self.color_zero, self.use_emission, self.emission_strength
+                    )
+                    shell_obj.data.materials.clear()
+                    shell_obj.data.materials.append(material)
+                    shells_colored += 1
+                    shells_with_zero += 1
+            
+            self.report({'INFO'}, f"Colored {shells_colored} shells with zero thickness color")
+            return {'FINISHED'}
+        
+        # We have some positive thicknesses
+        min_thickness = min(thicknesses)
+        max_thickness = max(thicknesses)
+        thickness_range = max_thickness - min_thickness
+        
+        self.report({'INFO'}, f"Thickness range: {min_thickness:.3f} to {max_thickness:.3f}")
+        
+        for shell_data in structural_data.shells:
+            if shell_data.name in bpy.data.objects:
+                shell_obj = bpy.data.objects[shell_data.name]
+                
+                if shell_data.thickness <= 0:
+                    # Zero or negative thickness - use special color
+                    color = self.color_zero
+                    shells_with_zero += 1
+                else:
+                    # Positive thickness - calculate gradient color
+                    if thickness_range > 0:
+                        normalized_thickness = (shell_data.thickness - min_thickness) / thickness_range
+                    else:
+                        # All positive thicknesses are the same
+                        normalized_thickness = 0.5
+                    
+                    color = self.interpolate_color(self.color_min, self.color_max, normalized_thickness)
+                    shells_with_positive += 1
+                
+                # Create or get material
+                material = self.create_thickness_material(shell_data, color, self.use_emission, self.emission_strength)
+                
+                # Assign material to shell
+                shell_obj.data.materials.clear()
+                shell_obj.data.materials.append(material)
+                shells_colored += 1
+        
+        # Switch to material preview
+        for area in context.screen.areas:  # type: ignore
+            if area.type == 'VIEW_3D':
+                for space in area.spaces:
+                    if space.type == 'VIEW_3D':
+                        space.shading.type = 'MATERIAL'  # type: ignore
+        
+        # Detailed report
+        report_msg = f"Colored {shells_colored} shells"
+        if shells_with_positive > 0:
+            report_msg += f" ({shells_with_positive} with thickness gradient)"
+        if shells_with_zero > 0:
+            report_msg += f" ({shells_with_zero} with zero thickness)"
+        
+        self.report({'INFO'}, report_msg)
+        return {'FINISHED'}
+    
+    def interpolate_color(self, color_min, color_max, factor):
+        """Interpolate between two colors based on factor (0-1)"""
+        r = color_min[0] + (color_max[0] - color_min[0]) * factor
+        g = color_min[1] + (color_max[1] - color_min[1]) * factor
+        b = color_min[2] + (color_max[2] - color_min[2]) * factor
+        a = color_min[3]  # Keep alpha constant
+        
+        return (r, g, b, a)
+    
+    def create_thickness_material(self, shell_data, color, use_emission, emission_strength):
+        """Create material for shell with thickness-based color"""
+        mat_name = f"FEA_Shell_Thickness_{shell_data.name}"
+        
+        if mat_name in bpy.data.materials:
+            material = bpy.data.materials[mat_name]
+            # Update existing material color
+            if material.use_nodes:
+                if use_emission:
+                    emission = material.node_tree.nodes.get('Emission')  # type: ignore
+                    if emission:
+                        emission.inputs['Color'].default_value = color  # type: ignore
+                        emission.inputs['Strength'].default_value = emission_strength  # type: ignore
+                else:
+                    bsdf = material.node_tree.nodes.get('Principled BSDF')  # type: ignore
+                    if bsdf:
+                        bsdf.inputs['Base Color'].default_value = color  # type: ignore
+            return material
+        
+        # Create new material
+        material = bpy.data.materials.new(name=mat_name)
+        material.use_nodes = True
+        material.node_tree.nodes.clear()  # type: ignore
+        
+        if use_emission:
+            # Use emission shader for bright, clear colors
+            emission = material.node_tree.nodes.new(type='ShaderNodeEmission')  # type: ignore
+            output = material.node_tree.nodes.new(type='ShaderNodeOutputMaterial')  # type: ignore
+            material.node_tree.links.new(emission.outputs['Emission'], output.inputs['Surface'])  # type: ignore
+            
+            emission.inputs['Color'].default_value = color  # type: ignore
+            emission.inputs['Strength'].default_value = emission_strength  # type: ignore
+        else:
+            # Use principled BSDF for more natural look
+            bsdf = material.node_tree.nodes.new(type='ShaderNodeBsdfPrincipled')  # type: ignore
+            output = material.node_tree.nodes.new(type='ShaderNodeOutputMaterial')  # type: ignore
+            material.node_tree.links.new(bsdf.outputs['BSDF'], output.inputs['Surface'])  # type: ignore
+            
+            bsdf.inputs['Base Color'].default_value = color  # type: ignore
+            bsdf.inputs['Metallic'].default_value = 0.0  # type: ignore
+            bsdf.inputs['Roughness'].default_value = 0.3  # type: ignore
+        
+        return material
+    
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self)  # type: ignore
+
+class STRUCTURAL_OT_color_shells_thickness_simple(Operator):
+    bl_idname = "structural.color_shells_thickness_simple"
+    bl_label = "Color Shells by Thickness (Simple)"
+    
+    def execute(self, context):
+        structural_data = context.scene.structural_data  # type: ignore
+        
+        if not structural_data.shells:
+            self.report({'WARNING'}, "No shells found")
+            return {'CANCELLED'}
+        
+        # Find thickness range (only positive)
+        thicknesses = [shell.thickness for shell in structural_data.shells if shell.thickness > 0]
+        
+        shells_colored = 0
+        shells_zero = 0
+        
+        # Color definitions
+        color_zero = (0.7, 0.7, 0.7, 1.0)  # Gray for zero thickness
+        color_min = (0.0, 0.3, 1.0, 1.0)   # Blue for min thickness
+        color_max = (1.0, 0.0, 0.0, 1.0)   # Red for max thickness
+        
+        if not thicknesses:
+            # Case 1: All shells have zero thickness
+            self.report({'INFO'}, "All shells have zero thickness - coloring gray")
+            for shell_data in structural_data.shells:
+                if shell_data.name in bpy.data.objects:
+                    self.color_shell(shell_data, color_zero)
+                    shells_colored += 1
+                    shells_zero += 1
+        elif len(thicknesses) == 1:
+            # Case 2: Only one unique positive thickness
+            single_thickness = thicknesses[0]
+            self.report({'INFO'}, f"All positive thicknesses are {single_thickness:.3f} - using mid-color")
+            for shell_data in structural_data.shells:
+                if shell_data.name in bpy.data.objects:
+                    if shell_data.thickness <= 0:
+                        self.color_shell(shell_data, color_zero)
+                        shells_zero += 1
+                    else:
+                        # All same thickness - use middle of gradient
+                        mid_color = self.interpolate_color(color_min, color_max, 0.5)
+                        self.color_shell(shell_data, mid_color)
+                    shells_colored += 1
+        else:
+            # Case 3: Multiple different thicknesses
+            min_thickness = min(thicknesses)
+            max_thickness = max(thicknesses)
+            thickness_range = max_thickness - min_thickness
+            
+            self.report({'INFO'}, f"Thickness: {min_thickness:.3f} to {max_thickness:.3f}")
+            
+            for shell_data in structural_data.shells:
+                if shell_data.name in bpy.data.objects:
+                    if shell_data.thickness <= 0:
+                        self.color_shell(shell_data, color_zero)
+                        shells_zero += 1
+                    else:
+                        normalized = (shell_data.thickness - min_thickness) / thickness_range
+                        color = self.interpolate_color(color_min, color_max, normalized)
+                        self.color_shell(shell_data, color)
+                    shells_colored += 1
+        
+        # Update viewport
+        for area in context.screen.areas:     # type: ignore
+            if area.type == 'VIEW_3D':
+                for space in area.spaces:
+                    if space.type == 'VIEW_3D':
+                        space.shading.type = 'MATERIAL'     # type: ignore
+        
+        # Detailed report
+        if shells_zero > 0:
+            self.report({'INFO'}, f"Colored {shells_colored} shells ({shells_zero} with zero thickness)")
+        else:
+            self.report({'INFO'}, f"Colored {shells_colored} shells")
+        
+        return {'FINISHED'}
+    
+    def color_shell(self, shell_data, color):
+        """Apply color to a single shell"""
+        shell_obj = bpy.data.objects[shell_data.name]
+        mat_name = f"FEA_Shell_{shell_data.name}"
+        
+        if mat_name in bpy.data.materials:
+            material = bpy.data.materials[mat_name]
+            # Update color
+            if material.use_nodes:
+                emission = material.node_tree.nodes.get('Emission')     # type: ignore
+                if emission:
+                    emission.inputs['Color'].default_value = color     # type: ignore
+            return material
+        
+        material = bpy.data.materials.new(name=mat_name)
+        material.use_nodes = True
+        material.node_tree.nodes.clear()     # type: ignore
+        
+        # Use emission for bright colors
+        emission = material.node_tree.nodes.new(type='ShaderNodeEmission')     # type: ignore
+        output = material.node_tree.nodes.new(type='ShaderNodeOutputMaterial')     # type: ignore
+        material.node_tree.links.new(emission.outputs['Emission'], output.inputs['Surface'])     # type: ignore
+        
+        emission.inputs['Color'].default_value = color     # type: ignore
+        emission.inputs['Strength'].default_value = 1.5     # type: ignore
+        
+        shell_obj.data.materials.clear()
+        shell_obj.data.materials.append(material)
+        
+        return material
+    
+    def interpolate_color(self, color_a, color_b, factor):
+        r = color_a[0] + (color_b[0] - color_a[0]) * factor
+        g = color_a[1] + (color_b[1] - color_a[1]) * factor
+        b = color_a[2] + (color_b[2] - color_a[2]) * factor
+        return (r, g, b, 1.0)
+
+class STRUCTURAL_OT_show_thickness_info(bpy.types.Operator):
+    bl_idname = "structural.show_thickness_info"
+    bl_label = "Show Thickness Info"
+    
+    def execute(self, context):
+        structural_data = context.scene.structural_data  # type: ignore
+        
+        if not structural_data.shells:
+            self.report({'INFO'}, "No shells in scene")
+            return {'CANCELLED'}
+        
+        # Count different cases
+        total_shells = len(structural_data.shells)
+        positive_thickness = [s.thickness for s in structural_data.shells if s.thickness > 0]
+        zero_thickness = [s for s in structural_data.shells if s.thickness <= 0]
+        
+        if not positive_thickness:
+            self.report({'INFO'}, f"All {total_shells} shells have zero/undefined thickness")
+        elif len(positive_thickness) == 1:
+            self.report({'INFO'}, f"All {len(positive_thickness)} positive thickness shells are {positive_thickness[0]:.4f} (+ {len(zero_thickness)} zero thickness)")
+        else:
+            min_thick = min(positive_thickness)
+            max_thick = max(positive_thickness)
+            avg_thick = sum(positive_thickness) / len(positive_thickness)
+            
+            info_msg = f"Thickness: {min_thick:.4f} to {max_thick:.4f} (avg: {avg_thick:.4f})"
+            if zero_thickness:
+                info_msg += f" + {len(zero_thickness)} zero thickness shells"
+            
+            self.report({'INFO'}, info_msg)
+        
+        return {'FINISHED'}
+
 
 class STRUCTURAL_OT_clear_all(Operator):
     bl_idname = "structural.clear_all"
@@ -777,9 +1194,13 @@ classes = (
     STRUCTURAL_OT_color_beams_by_section_name,
     STRUCTURAL_OT_color_beams_by_section_palette,
     STRUCTURAL_OT_color_all_beams_with_sections,
+    STRUCTURAL_OT_color_beams_emission,
     STRUCTURAL_OT_add_shell,
     STRUCTURAL_OT_delete_shell,
     STRUCTURAL_OT_update_shell,
+    STRUCTURAL_OT_color_shells_by_thickness,
+    STRUCTURAL_OT_color_shells_thickness_simple,
+    STRUCTURAL_OT_show_thickness_info,
     STRUCTURAL_OT_clear_all,
     STRUCTURAL_UL_sections,
     STRUCTURAL_UL_points,

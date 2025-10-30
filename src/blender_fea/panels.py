@@ -129,7 +129,7 @@ class VIEW3D_PT_structural_sections(Panel):
                 box.prop(section, "sides")
                 box.prop(section, "poly_diameter")
 
-class STRUCTURAL_PT_visualization(Panel):
+class STRUCTURAL_PT_visualization(bpy.types.Panel):
     bl_label = "Beam Visualization"
     bl_idname = "STRUCTURAL_PT_visualization"
     bl_space_type = 'VIEW_3D'
@@ -139,31 +139,32 @@ class STRUCTURAL_PT_visualization(Panel):
     def draw(self, context):
         layout = self.layout
         
-        layout.label(text="Color by Section Name:")   # type: ignore
+        layout.label(text="Switch to Material Preview (Z) to see colors")   # type: ignore
+        layout.separator()   # type: ignore
+        
+        # Beam coloring section
+        layout.label(text="Beam Coloring:")   # type: ignore
         layout.operator("structural.color_beams_by_section_name")   # type: ignore
-        layout.operator("structural.color_beams_by_section_palette")   # type: ignore
-        layout.operator("structural.color_all_beams_with_sections")     # type: ignore  
+        layout.operator("structural.color_beams_emission", text="Bright Beams")   # type: ignore
+        layout.separator()   # type: ignore
         
-        # Show section usage statistics
+        # Shell coloring section
+        layout.label(text="Shell Coloring:")   # type: ignore
+        layout.operator("structural.color_shells_by_thickness", text="Color Shells by Thickness")   # type: ignore
+        layout.operator("structural.color_shells_thickness_simple", text="Quick Thickness Colors")   # type: ignore
+        layout.operator("structural.show_thickness_info", text="Show Thickness Range")   # type: ignore
+        
+        # Show shell thickness statistics
         structural_data = context.scene.structural_data  # type: ignore
-        section_usage = {}
-        total_beams = len(structural_data.beams)
-        beams_with_sections = 0
-        
-        for beam in structural_data.beams:
-            if beam.section_name:
-                beams_with_sections += 1
-                section_usage[beam.section_name] = section_usage.get(beam.section_name, 0) + 1
-        
-        if section_usage:
-            layout.separator()   # type: ignore
-            layout.label(text="Section Usage:")   # type: ignore
-            for section_name, count in section_usage.items():   # type: ignore
-                layout.label(text=f"  {section_name}: {count} beams")   # type: ignore
-            
-            if beams_with_sections < total_beams:
-                layout.label(text=f"  Unassigned: {total_beams - beams_with_sections} beams")   # type: ignore
-
+        if structural_data.shells:
+            thicknesses = [s.thickness for s in structural_data.shells if s.thickness > 0]
+            if thicknesses:
+                min_t = min(thicknesses)
+                max_t = max(thicknesses)
+                layout.separator()   # type: ignore
+                layout.label(text="Shell Thickness Range:")   # type: ignore
+                layout.label(text=f"  Min: {min_t:.4f}")   # type: ignore
+                layout.label(text=f"  Max: {max_t:.4f}")   # type: ignore
 
 class VIEW3D_PT_structural_shells(Panel):
     bl_label = "Structural Shells"
