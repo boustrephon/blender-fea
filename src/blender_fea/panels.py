@@ -139,10 +139,10 @@ class STRUCTURAL_PT_visualization(Panel):
     def draw(self, context):
         layout = self.layout
         
-        layout.label(text="Color by Section Name:")
-        layout.operator("structural.color_beams_by_section_name")
-        layout.operator("structural.color_beams_by_section_palette")
-        layout.operator("structural.color_all_beams_with_sections")
+        layout.label(text="Color by Section Name:")   # type: ignore
+        layout.operator("structural.color_beams_by_section_name")   # type: ignore
+        layout.operator("structural.color_beams_by_section_palette")   # type: ignore
+        layout.operator("structural.color_all_beams_with_sections")     # type: ignore  
         
         # Show section usage statistics
         structural_data = context.scene.structural_data  # type: ignore
@@ -156,13 +156,13 @@ class STRUCTURAL_PT_visualization(Panel):
                 section_usage[beam.section_name] = section_usage.get(beam.section_name, 0) + 1
         
         if section_usage:
-            layout.separator()
-            layout.label(text="Section Usage:")
-            for section_name, count in section_usage.items():
-                layout.label(text=f"  {section_name}: {count} beams")
+            layout.separator()   # type: ignore
+            layout.label(text="Section Usage:")   # type: ignore
+            for section_name, count in section_usage.items():   # type: ignore
+                layout.label(text=f"  {section_name}: {count} beams")   # type: ignore
             
             if beams_with_sections < total_beams:
-                layout.label(text=f"  Unassigned: {total_beams - beams_with_sections} beams")
+                layout.label(text=f"  Unassigned: {total_beams - beams_with_sections} beams")   # type: ignore
 
 
 class VIEW3D_PT_structural_shells(Panel):

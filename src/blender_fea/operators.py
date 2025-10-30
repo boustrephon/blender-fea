@@ -268,16 +268,16 @@ class STRUCTURAL_OT_color_beams_by_section_name(bpy.types.Operator):
         material.use_nodes = True
         
         # Clear default nodes
-        material.node_tree.nodes.clear()
+        material.node_tree.nodes.clear()   # type: ignore
         
         # Create nodes
-        bsdf = material.node_tree.nodes.new(type='ShaderNodeBsdfPrincipled')
-        output = material.node_tree.nodes.new(type='ShaderNodeOutputMaterial')
-        material.node_tree.links.new(bsdf.outputs['BSDF'], output.inputs['Surface'])
+        bsdf = material.node_tree.nodes.new(type='ShaderNodeBsdfPrincipled')   # type: ignore
+        output = material.node_tree.nodes.new(type='ShaderNodeOutputMaterial')   # type: ignore
+        material.node_tree.links.new(bsdf.outputs['BSDF'], output.inputs['Surface'])   # type: ignore
         
         # Generate consistent color from section name hash
         color = self.generate_color_from_name(section_name)
-        bsdf.inputs['Base Color'].default_value = color
+        bsdf.inputs['Base Color'].default_value = color   # type: ignore
         
         return material
     
@@ -346,12 +346,12 @@ class STRUCTURAL_OT_color_beams_by_section_palette(bpy.types.Operator):
                     material = bpy.data.materials.new(name=mat_name)
                     material.use_nodes = True
                     
-                    material.node_tree.nodes.clear()
-                    bsdf = material.node_tree.nodes.new(type='ShaderNodeBsdfPrincipled')
-                    output = material.node_tree.nodes.new(type='ShaderNodeOutputMaterial')
-                    material.node_tree.links.new(bsdf.outputs['BSDF'], output.inputs['Surface'])
+                    material.node_tree.nodes.clear()   # type: ignore
+                    bsdf = material.node_tree.nodes.new(type='ShaderNodeBsdfPrincipled')   # type: ignore
+                    output = material.node_tree.nodes.new(type='ShaderNodeOutputMaterial')   # type: ignore
+                    material.node_tree.links.new(bsdf.outputs['BSDF'], output.inputs['Surface'])   # type: ignore
                     
-                    bsdf.inputs['Base Color'].default_value = section_colors[beam_data.section_name]
+                    bsdf.inputs['Base Color'].default_value = section_colors[beam_data.section_name]   # type: ignore
                 
                 # Assign material
                 beam_obj.data.materials.clear()
@@ -401,10 +401,10 @@ class STRUCTURAL_OT_color_all_beams_with_sections(bpy.types.Operator):
         material.use_nodes = True
         
         # Setup nodes
-        material.node_tree.nodes.clear()
-        bsdf = material.node_tree.nodes.new(type='ShaderNodeBsdfPrincipled')
-        output = material.node_tree.nodes.new(type='ShaderNodeOutputMaterial')
-        material.node_tree.links.new(bsdf.outputs['BSDF'], output.inputs['Surface'])
+        material.node_tree.nodes.clear()   # type: ignore
+        bsdf = material.node_tree.nodes.new(type='ShaderNodeBsdfPrincipled')   # type: ignore
+        output = material.node_tree.nodes.new(type='ShaderNodeOutputMaterial')   # type: ignore
+        material.node_tree.links.new(bsdf.outputs['BSDF'], output.inputs['Surface'])   # type: ignore
         
         # Special color for unassigned sections
         if section_name == "Unassigned":
@@ -418,7 +418,7 @@ class STRUCTURAL_OT_color_all_beams_with_sections(bpy.types.Operator):
             b = int(hash_hex[4:6], 16) / 255.0
             color = (r, g, b, 1.0)
         
-        bsdf.inputs['Base Color'].default_value = color
+        bsdf.inputs['Base Color'].default_value = color   # type: ignore
         return material
 
 
