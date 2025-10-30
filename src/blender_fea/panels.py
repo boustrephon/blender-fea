@@ -129,6 +129,42 @@ class VIEW3D_PT_structural_sections(Panel):
                 box.prop(section, "sides")
                 box.prop(section, "poly_diameter")
 
+class STRUCTURAL_PT_visualization(Panel):
+    bl_label = "Beam Visualization"
+    bl_idname = "STRUCTURAL_PT_visualization"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = 'Structural'
+    
+    def draw(self, context):
+        layout = self.layout
+        
+        layout.label(text="Color by Section Name:")
+        layout.operator("structural.color_beams_by_section_name")
+        layout.operator("structural.color_beams_by_section_palette")
+        layout.operator("structural.color_all_beams_with_sections")
+        
+        # Show section usage statistics
+        structural_data = context.scene.structural_data  # type: ignore
+        section_usage = {}
+        total_beams = len(structural_data.beams)
+        beams_with_sections = 0
+        
+        for beam in structural_data.beams:
+            if beam.section_name:
+                beams_with_sections += 1
+                section_usage[beam.section_name] = section_usage.get(beam.section_name, 0) + 1
+        
+        if section_usage:
+            layout.separator()
+            layout.label(text="Section Usage:")
+            for section_name, count in section_usage.items():
+                layout.label(text=f"  {section_name}: {count} beams")
+            
+            if beams_with_sections < total_beams:
+                layout.label(text=f"  Unassigned: {total_beams - beams_with_sections} beams")
+
+
 class VIEW3D_PT_structural_shells(Panel):
     bl_label = "Structural Shells"
     bl_idname = "VIEW3D_PT_structural_shells"
@@ -164,6 +200,7 @@ classes = (
     VIEW3D_PT_structural_beams,
     VIEW3D_PT_structural_shells,
     VIEW3D_PT_structural_sections,
+    STRUCTURAL_PT_visualization,
 )
 
 def register():

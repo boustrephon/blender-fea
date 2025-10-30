@@ -4,6 +4,7 @@ Operators for Structural Model
 
 # from pathlib import Path
 # from sys import path as sys_path
+import random
 import bpy
 from bpy.types import Operator, UIList
 from bpy.props import StringProperty
@@ -226,6 +227,202 @@ class STRUCTURAL_OT_update_beam(Operator):
         
         return {'FINISHED'}
 
+class STRUCTURAL_OT_color_beams_by_section_name(bpy.types.Operator):
+    bl_idname = "structural.color_beams_by_section_name"
+    bl_label = "Color Beams by Section Name"
+    
+    def execute(self, context):
+        structural_data = context.scene.structural_data  # type: ignore
+        
+        beams_colored = 0
+        section_materials = {}
+        
+        for beam_data in structural_data.beams:
+            if not beam_data.section_name or beam_data.section_name == "":
+                continue  # Skip beams without section assignment
+                
+            if beam_data.name in bpy.data.objects:
+                beam_obj = bpy.data.objects[beam_data.name]
+                
+                # Create or get material for this specific section name
+                if beam_data.section_name not in section_materials:
+                    section_materials[beam_data.section_name] = self.create_section_material(beam_data.section_name)
+                
+                # Assign material to beam
+                beam_obj.data.materials.clear()
+                beam_obj.data.materials.append(section_materials[beam_data.section_name])
+                beams_colored += 1
+        
+        self.report({'INFO'}, f"Colored {beams_colored} beams by section name")
+        return {'FINISHED'}
+    
+    def create_section_material(self, section_name):
+        """Create a unique material for a specific section name"""
+        mat_name = f"FEA_Section_{section_name}"
+        
+        if mat_name in bpy.data.materials:
+            return bpy.data.materials[mat_name]
+        
+        # Create new material with consistent color based on section name
+        material = bpy.data.materials.new(name=mat_name)
+        material.use_nodes = True
+        
+        # Clear default nodes
+        material.node_tree.nodes.clear()
+        
+        # Create nodes
+        bsdf = material.node_tree.nodes.new(type='ShaderNodeBsdfPrincipled')
+        output = material.node_tree.nodes.new(type='ShaderNodeOutputMaterial')
+        material.node_tree.links.new(bsdf.outputs['BSDF'], output.inputs['Surface'])
+        
+        # Generate consistent color from section name hash
+        color = self.generate_color_from_name(section_name)
+        bsdf.inputs['Base Color'].default_value = color
+        
+        return material
+    
+    def generate_color_from_name(self, name):
+        """Generate a consistent color from a string name"""
+        import hashlib
+        
+        # Create hash from name for consistent coloring
+        hash_obj = hashlib.md5(name.encode())
+        hash_hex = hash_obj.hexdigest()
+        
+        # Use first 6 characters of hash for RGB values
+        r = int(hash_hex[0:2], 16) / 255.0
+        g = int(hash_hex[2:4], 16) / 255.0
+        b = int(hash_hex[4:6], 16) / 255.0
+        
+        # Ensure reasonable brightness and saturation
+        # You can adjust these constraints based on your preference
+        r = max(0.3, min(0.9, r))
+        g = max(0.3, min(0.9, g)) 
+        b = max(0.3, min(0.9, b))
+        
+        return (r, g, b, 1.0)
+
+class STRUCTURAL_OT_color_beams_by_section_palette(bpy.types.Operator):
+    bl_idname = "structural.color_beams_by_section_palette"
+    bl_label = "Color Beams by Section (Palette)"
+    
+    def execute(self, context):
+        structural_data = context.scene.structural_data  # type: ignore
+        
+        # Define a nice color palette
+        color_palette = [
+            (0.8, 0.2, 0.2, 1.0),  # Red
+            (0.2, 0.6, 0.8, 1.0),  # Blue
+            (0.2, 0.8, 0.3, 1.0),  # Green
+            (0.8, 0.6, 0.1, 1.0),  # Yellow
+            (0.7, 0.3, 0.8, 1.0),  # Purple
+            (0.1, 0.8, 0.8, 1.0),  # Cyan
+            (0.9, 0.4, 0.1, 1.0),  # Orange
+            (0.6, 0.3, 0.6, 1.0),  # Magenta
+        ]
+        
+        # Map section names to colors
+        section_colors = {}
+        beams_colored = 0
+        
+        for i, beam_data in enumerate(structural_data.beams):
+            if not beam_data.section_name or beam_data.section_name == "":
+                continue
+                
+            if beam_data.name in bpy.data.objects:
+                beam_obj = bpy.data.objects[beam_data.name]
+                
+                # Assign color based on section name
+                if beam_data.section_name not in section_colors:
+                    # Use modulo to cycle through palette
+                    color_index = len(section_colors) % len(color_palette)
+                    section_colors[beam_data.section_name] = color_palette[color_index]
+                
+                # Create or get material
+                mat_name = f"FEA_Section_{beam_data.section_name}"
+                if mat_name in bpy.data.materials:
+                    material = bpy.data.materials[mat_name]
+                else:
+                    material = bpy.data.materials.new(name=mat_name)
+                    material.use_nodes = True
+                    
+                    material.node_tree.nodes.clear()
+                    bsdf = material.node_tree.nodes.new(type='ShaderNodeBsdfPrincipled')
+                    output = material.node_tree.nodes.new(type='ShaderNodeOutputMaterial')
+                    material.node_tree.links.new(bsdf.outputs['BSDF'], output.inputs['Surface'])
+                    
+                    bsdf.inputs['Base Color'].default_value = section_colors[beam_data.section_name]
+                
+                # Assign material
+                beam_obj.data.materials.clear()
+                beam_obj.data.materials.append(material)
+                beams_colored += 1
+        
+        self.report({'INFO'}, f"Colored {beams_colored} beams using {len(section_colors)} different sections")
+        return {'FINISHED'}
+
+class STRUCTURAL_OT_color_all_beams_with_sections(bpy.types.Operator):
+    bl_idname = "structural.color_all_beams_with_sections"
+    bl_label = "Color All Beams (Include Unassigned)"
+    
+    def execute(self, context):
+        structural_data = context.scene.structural_data  # type: ignore
+        
+        beams_colored = 0
+        section_materials = {}
+        
+        for beam_data in structural_data.beams:
+            if beam_data.name in bpy.data.objects:
+                beam_obj = bpy.data.objects[beam_data.name]
+                
+                # Determine section name (use "Unassigned" if none)
+                section_name = beam_data.section_name if beam_data.section_name else "Unassigned"
+                
+                # Create or get material
+                if section_name not in section_materials:
+                    section_materials[section_name] = self.create_section_material(section_name)
+                
+                # Assign material
+                beam_obj.data.materials.clear()
+                beam_obj.data.materials.append(section_materials[section_name])
+                beams_colored += 1
+        
+        self.report({'INFO'}, f"Colored {beams_colored} beams ({len(section_materials)} different sections)")
+        return {'FINISHED'}
+    
+    def create_section_material(self, section_name):
+        """Create material with appropriate color"""
+        mat_name = f"FEA_Section_{section_name}"
+        
+        if mat_name in bpy.data.materials:
+            return bpy.data.materials[mat_name]
+        
+        material = bpy.data.materials.new(name=mat_name)
+        material.use_nodes = True
+        
+        # Setup nodes
+        material.node_tree.nodes.clear()
+        bsdf = material.node_tree.nodes.new(type='ShaderNodeBsdfPrincipled')
+        output = material.node_tree.nodes.new(type='ShaderNodeOutputMaterial')
+        material.node_tree.links.new(bsdf.outputs['BSDF'], output.inputs['Surface'])
+        
+        # Special color for unassigned sections
+        if section_name == "Unassigned":
+            color = (0.5, 0.5, 0.5, 1.0)  # Gray
+        else:
+            # Generate color from name
+            import hashlib
+            hash_hex = hashlib.md5(section_name.encode()).hexdigest()
+            r = int(hash_hex[0:2], 16) / 255.0
+            g = int(hash_hex[2:4], 16) / 255.0
+            b = int(hash_hex[4:6], 16) / 255.0
+            color = (r, g, b, 1.0)
+        
+        bsdf.inputs['Base Color'].default_value = color
+        return material
+
+
+
 class STRUCTURAL_OT_add_shell(Operator):
     bl_idname = "structural.add_shell"
     bl_label = "Add Structural Shell"
@@ -423,6 +620,7 @@ class STRUCTURAL_OT_import_json(Operator):
     def invoke(self, context, event):
         context.window_manager.fileselect_add(self) # type: ignore
         return {'RUNNING_MODAL'}
+
 class STRUCTURAL_OT_export_json(Operator):
     bl_idname = "structural.export_json"
     bl_label = "Export Structural JSON"
@@ -576,6 +774,9 @@ classes = (
     STRUCTURAL_OT_add_beam,
     STRUCTURAL_OT_delete_beam,
     STRUCTURAL_OT_update_beam,
+    STRUCTURAL_OT_color_beams_by_section_name,
+    STRUCTURAL_OT_color_beams_by_section_palette,
+    STRUCTURAL_OT_color_all_beams_with_sections,
     STRUCTURAL_OT_add_shell,
     STRUCTURAL_OT_delete_shell,
     STRUCTURAL_OT_update_shell,
