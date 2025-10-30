@@ -1,13 +1,19 @@
+"""
+Operators for Structural Model
+"""
+
+# from pathlib import Path
+# from sys import path as sys_path
 import bpy
 from bpy.types import Operator, UIList
 from bpy.props import StringProperty
 from . import utils
+from . import bl_info  # type: ignore # 
+# from blender_fea import bl_info # does not work
 import json
 import os
 import logging
 log = logging.getLogger(__name__) # logging added as example
-
-
 
 class STRUCTURAL_OT_organize_collections(Operator):
     bl_idname = "structural.organize_collections"
@@ -15,8 +21,8 @@ class STRUCTURAL_OT_organize_collections(Operator):
     bl_description = "Move all structural objects to proper collections"
     
     def execute(self, context):
-        scene = context.scene
-        structural_data = scene.structural_data
+        
+        structural_data = context.scene.structural_data # type: ignore
         
         # Ensure collection exists
         structural_collection = utils.ensure_structural_collection()
@@ -49,7 +55,7 @@ class STRUCTURAL_OT_add_section(Operator):
     
     def execute(self, context):
         scene = context.scene
-        structural_data = scene.structural_data
+        structural_data = context.scene.structural_data # type: ignore
         
         section = structural_data.sections.add()
         section.name = f"Section_{len(structural_data.sections)}"
@@ -68,8 +74,7 @@ class STRUCTURAL_OT_delete_section(Operator):
     bl_label = "Delete Section"
     
     def execute(self, context):
-        scene = context.scene
-        structural_data = scene.structural_data
+        structural_data = context.scene.structural_data # type: ignore
         
         if structural_data.sections and structural_data.active_section_index >= 0:
             section = structural_data.sections[structural_data.active_section_index]
@@ -97,8 +102,7 @@ class STRUCTURAL_OT_add_point(Operator):
     bl_description = "Add a new structural point"
     
     def execute(self, context):
-        scene = context.scene
-        structural_data = scene.structural_data
+        structural_data = context.scene.structural_data # type: ignore
         
         point = structural_data.points.add()
         point.name = f"Point_{len(structural_data.points)}"
@@ -107,10 +111,10 @@ class STRUCTURAL_OT_add_point(Operator):
         point.z = 0.0
         
         # Create visual representation
-        with bpy.context.temp_override(**bpy.context.copy()):
+        with bpy.context.temp_override(**bpy.context.copy()):  # type: ignore
             bpy.ops.mesh.primitive_uv_sphere_add(radius=0.1, location=(point.x, point.y, point.z))
         sphere = context.active_object
-        sphere.name = point.name
+        sphere.name = point.name  # type: ignore
         
         # Move to Structural Model collection
         utils.move_to_structural_collection(sphere)
@@ -123,8 +127,7 @@ class STRUCTURAL_OT_delete_point(Operator):
     bl_label = "Delete Selected Point"
     
     def execute(self, context):
-        scene = context.scene
-        structural_data = scene.structural_data
+        structural_data = context.scene.structural_data # type: ignore
         
         if structural_data.points and structural_data.active_point_index >= 0:
             point = structural_data.points[structural_data.active_point_index]
@@ -148,8 +151,7 @@ class STRUCTURAL_OT_update_point_position(Operator):
     bl_label = "Update Point Position"
     
     def execute(self, context):
-        scene = context.scene
-        structural_data = scene.structural_data
+        structural_data = context.scene.structural_data # type: ignore
         
         if structural_data.points and structural_data.active_point_index >= 0:
             point = structural_data.points[structural_data.active_point_index]
@@ -166,8 +168,7 @@ class STRUCTURAL_OT_add_beam(Operator):
     bl_label = "Add Structural Beam"
     
     def execute(self, context):
-        scene = context.scene
-        structural_data = scene.structural_data
+        structural_data = context.scene.structural_data # type: ignore
         
         if len(structural_data.points) < 2:
             self.report({'ERROR'}, "Need at least 2 points to create a beam")
@@ -189,8 +190,7 @@ class STRUCTURAL_OT_delete_beam(Operator):
     bl_label = "Delete Selected Beam"
     
     def execute(self, context):
-        scene = context.scene
-        structural_data = scene.structural_data
+        structural_data = context.scene.structural_data # type: ignore
         
         if structural_data.beams and structural_data.active_beam_index >= 0:
             beam = structural_data.beams[structural_data.active_beam_index]
@@ -212,8 +212,7 @@ class STRUCTURAL_OT_update_beam(Operator):
     bl_label = "Update Beam"
     
     def execute(self, context):
-        scene = context.scene
-        structural_data = scene.structural_data
+        structural_data = context.scene.structural_data # type: ignore
         
         if structural_data.beams and structural_data.active_beam_index >= 0:
             beam = structural_data.beams[structural_data.active_beam_index]
@@ -232,8 +231,7 @@ class STRUCTURAL_OT_add_shell(Operator):
     bl_label = "Add Structural Shell"
     
     def execute(self, context):
-        scene = context.scene
-        structural_data = scene.structural_data
+        structural_data = context.scene.structural_data # type: ignore
         
         if len(structural_data.points) < 3:
             self.report({'ERROR'}, "Need at least 3 points to create a shell")
@@ -256,8 +254,7 @@ class STRUCTURAL_OT_delete_shell(Operator):
     bl_label = "Delete Selected Shell"
     
     def execute(self, context):
-        scene = context.scene
-        structural_data = scene.structural_data
+        structural_data = context.scene.structural_data # type: ignore
         
         if structural_data.shells and structural_data.active_shell_index >= 0:
             shell = structural_data.shells[structural_data.active_shell_index]
@@ -278,8 +275,7 @@ class STRUCTURAL_OT_update_shell(Operator):
     bl_label = "Update Shell"
     
     def execute(self, context):
-        scene = context.scene
-        structural_data = scene.structural_data
+        structural_data = context.scene.structural_data # type: ignore
         
         if structural_data.shells and structural_data.active_shell_index >= 0:
             shell = structural_data.shells[structural_data.active_shell_index]
@@ -298,8 +294,7 @@ class STRUCTURAL_OT_clear_all(Operator):
     bl_description = "Remove all structural elements and data"
     
     def execute(self, context):
-        scene = context.scene
-        structural_data = scene.structural_data
+        structural_data = context.scene.structural_data # type: ignore
         
         # Remove all objects created by this addon
         for point in structural_data.points:
@@ -334,18 +329,19 @@ class STRUCTURAL_OT_import_json(Operator):
     bl_label = "Import Structural JSON"
     bl_description = "Import structural data from JSON file"
     
-    filepath: StringProperty(
+    filepath: StringProperty( # type: ignore
         name="File Path",
         description="Filepath used for importing the file",
         maxlen=1024, 
         subtype='FILE_PATH'
     )
     
-    filter_glob: StringProperty(default='*.json', options={'HIDDEN'})
+    filter_glob: StringProperty( # type: ignore
+        default='*.json', options={'HIDDEN'}
+        )
     
     def execute(self, context):
-        scene = context.scene
-        structural_data = scene.structural_data
+        structural_data = context.scene.structural_data # type: ignore
         
         try:
             # Verify file exists before trying to open it
@@ -358,7 +354,7 @@ class STRUCTURAL_OT_import_json(Operator):
                 data = json.load(file)
             
             # Clear existing data
-            bpy.ops.structural.clear_all()
+            bpy.ops.structural.clear_all() # type: ignore
             
             # Import points
             if 'points' in data.get('structural_data', {}):
@@ -367,10 +363,10 @@ class STRUCTURAL_OT_import_json(Operator):
                     point.name = point_name
                     point.x, point.y, point.z = coords
                     # Create visual representation
-                    with bpy.context.temp_override(**bpy.context.copy()):
+                    with bpy.context.temp_override(**bpy.context.copy()): # type: ignore
                         bpy.ops.mesh.primitive_uv_sphere_add(radius=0.1, location=(point.x, point.y, point.z))
                     sphere = context.active_object
-                    sphere.name = point_name
+                    sphere.name = point_name  # type: ignore
                     utils.move_to_structural_collection(sphere)
             
             # Import sections (BEFORE beams)
@@ -425,30 +421,39 @@ class STRUCTURAL_OT_import_json(Operator):
             return {'CANCELLED'}
     
     def invoke(self, context, event):
-        context.window_manager.fileselect_add(self)
+        context.window_manager.fileselect_add(self) # type: ignore
         return {'RUNNING_MODAL'}
 class STRUCTURAL_OT_export_json(Operator):
     bl_idname = "structural.export_json"
     bl_label = "Export Structural JSON"
     bl_description = "Export structural data to JSON file"
     
-    filepath: StringProperty(
+    filepath: StringProperty( # type: ignore
         name="File Path", 
         description="Filepath used for exporting the file", 
         maxlen=1024,
         subtype='FILE_PATH'
     )
     
-    filter_glob: StringProperty(default='*.json', options={'HIDDEN'})
+    filter_glob: StringProperty( # type: ignore
+        default='*.json', options={'HIDDEN'}
+        )
     
     def execute(self, context):
-        scene = context.scene
-        structural_data = scene.structural_data
+        structural_data = context.scene.structural_data # type: ignore
         
         try:
             # Ensure the filepath has .json extension
             if not self.filepath.lower().endswith('.json'):
                 self.filepath += '.json'
+            
+            # Get version from bl_info
+            version_name = bl_info['name']
+            version_tuple = bl_info['version']
+            version_string = f"{version_tuple[0]}.{version_tuple[1]}.{version_tuple[2]}"
+            scene_units = context.scene.unit_settings.system   # type: ignore
+            scale_length = context.scene.unit_settings.scale_length   # type: ignore
+            length_unit = context.scene.unit_settings.length_unit   # type: ignore
             
             # Build data structure
             data = {
@@ -458,9 +463,12 @@ class STRUCTURAL_OT_export_json(Operator):
                     "shells": {},
                     "sections": {},
                     "metadata": {
-                        "version": "1.1",
-                        "exported_from": "Blender Structural Modeling", 
-                        "units": "blender_units"
+                        "version": version_string,
+                        "exported_from": version_name, 
+                        "units": scene_units,
+                        "scale_length": scale_length,
+                        "length_unit": length_unit,
+                        "blender_version": bpy.app.version_string
                     }
                 }
             }
@@ -529,7 +537,7 @@ class STRUCTURAL_OT_export_json(Operator):
         import time
         timestamp = time.strftime("%Y%m%d-%H%M%S")
         self.filepath = f"structural_data_{timestamp}.json"
-        context.window_manager.fileselect_add(self)
+        context.window_manager.fileselect_add(self)   # type: ignore
         return {'RUNNING_MODAL'}
 
 # UI Lists

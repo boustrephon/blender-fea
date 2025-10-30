@@ -15,6 +15,9 @@ __all__ = ["MyOperator", "MyPanel"]  # Optional: for "from src import *"
 
 import logging
 
+from .. import bl_info
+__all__ = ['bl_info']
+
 # Create a logger for the package
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)  # Or another level like DEBUG
@@ -37,11 +40,11 @@ DEFAULT_UNITS = {
     'length': 'm',
     'mass': 'kg',
     'force': 'N',
+    'moment': 'Nm',
     'pressure': 'Pa',
     'temperature': 'K',
     'velocity': 'm/s',
     'acceleration': 'm/s^2',
-    'torque': 'N-m',
     'energy': 'J',
     'power': 'W',
     'angle': 'rad',

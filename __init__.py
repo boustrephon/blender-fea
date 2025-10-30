@@ -9,6 +9,11 @@ bl_info = {
     "support": "COMMUNITY",
 }
 
+from pathlib import Path
+from sys import path as sys_path
+
+
+
 import bpy
 from .src.blender_fea import operators, panels, properties, utils
 

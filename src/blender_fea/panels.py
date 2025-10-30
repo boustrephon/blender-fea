@@ -11,7 +11,7 @@ class VIEW3D_PT_structural_modeling(Panel):
     def draw(self, context):
         layout = self.layout
         
-        box = layout.box()
+        box = layout.box()    # type: ignore
         box.label(text="Quick Actions")
         row = box.row()
         row.operator("structural.add_point", text="Add Point")
@@ -19,18 +19,18 @@ class VIEW3D_PT_structural_modeling(Panel):
         row.operator("structural.add_shell", text="Add Shell")
         
         # Collection management
-        box = layout.box()
+        box = layout.box()   # type: ignore
         box.label(text="Collection Management")
         box.operator("structural.organize_collections", text="Organize Collections")
 
         # Import/Export
-        box = layout.box()
+        box = layout.box()   # type: ignore
         box.label(text="Data Management")
         row = box.row()
         row.operator("structural.import_json", text="Import JSON", icon='IMPORT')
         row.operator("structural.export_json", text="Export JSON", icon='EXPORT')
         
-        layout.operator("structural.clear_all", icon='TRASH', text="Clear All")
+        layout.operator("structural.clear_all", icon='TRASH', text="Clear All")   # type: ignore
 
 class VIEW3D_PT_structural_points(Panel):
     bl_label = "Structural Points"
@@ -41,10 +41,9 @@ class VIEW3D_PT_structural_points(Panel):
     
     def draw(self, context):
         layout = self.layout
-        scene = context.scene
-        structural_data = scene.structural_data
+        structural_data = context.scene.structural_data   # type: ignore
         
-        row = layout.row()
+        row = layout.row()   # type: ignore
         row.template_list("STRUCTURAL_UL_points", "", structural_data, "points", 
                          structural_data, "active_point_index")
         
@@ -54,7 +53,7 @@ class VIEW3D_PT_structural_points(Panel):
         
         if structural_data.points and structural_data.active_point_index >= 0:
             point = structural_data.points[structural_data.active_point_index]
-            box = layout.box()
+            box = layout.box()   # type: ignore
             box.label(text=f"Point: {point.name}")
             box.prop(point, "x")
             box.prop(point, "y")
@@ -70,10 +69,9 @@ class VIEW3D_PT_structural_beams(Panel):
     
     def draw(self, context):
         layout = self.layout
-        scene = context.scene
-        structural_data = scene.structural_data
+        structural_data = context.scene.structural_data   # type: ignore
         
-        row = layout.row()
+        row = layout.row()   # type: ignore
         row.template_list("STRUCTURAL_UL_beams", "", structural_data, "beams", 
                          structural_data, "active_beam_index")
         
@@ -83,7 +81,7 @@ class VIEW3D_PT_structural_beams(Panel):
         
         if structural_data.beams and structural_data.active_beam_index >= 0:
             beam = structural_data.beams[structural_data.active_beam_index]
-            box = layout.box()
+            box = layout.box()   # type: ignore
             box.label(text=f"Beam: {beam.name}")
             box.prop_search(beam, "start_point", structural_data, "points", text="Start")
             box.prop_search(beam, "end_point", structural_data, "points", text="End")
@@ -106,10 +104,9 @@ class VIEW3D_PT_structural_sections(Panel):
     
     def draw(self, context):
         layout = self.layout
-        scene = context.scene
-        structural_data = scene.structural_data
+        structural_data = context.scene.structural_data   # type: ignore
         
-        row = layout.row()
+        row = layout.row()   # type: ignore
         row.template_list("STRUCTURAL_UL_sections", "", structural_data, "sections", 
                          structural_data, "active_section_index")
         
@@ -119,7 +116,7 @@ class VIEW3D_PT_structural_sections(Panel):
         
         if structural_data.sections and structural_data.active_section_index >= 0:
             section = structural_data.sections[structural_data.active_section_index]
-            box = layout.box()
+            box = layout.box()   # type: ignore
             box.label(text=f"Section: {section.name}")
             box.prop(section, "section_type")
             
@@ -141,10 +138,9 @@ class VIEW3D_PT_structural_shells(Panel):
     
     def draw(self, context):
         layout = self.layout
-        scene = context.scene
-        structural_data = scene.structural_data
+        structural_data = context.scene.structural_data   # type: ignore
         
-        row = layout.row()
+        row = layout.row()   # type: ignore
         row.template_list("STRUCTURAL_UL_shells", "", structural_data, "shells", 
                          structural_data, "active_shell_index")
         
@@ -154,7 +150,7 @@ class VIEW3D_PT_structural_shells(Panel):
         
         if structural_data.shells and structural_data.active_shell_index >= 0:
             shell = structural_data.shells[structural_data.active_shell_index]
-            box = layout.box()
+            box = layout.box()   # type: ignore
             box.label(text=f"Shell: {shell.name}")
             box.prop(shell, "point_list", text="Points")
             box.label(text="Comma separated point names")

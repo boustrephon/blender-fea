@@ -13,18 +13,48 @@ UNITS_DICT = {
     'hour': {'name': 'hours', 'type': 'time', 'scale': 3600.0},
 
     'm': {'name': 'metres', 'type': 'length', 'scale': 1.0},
+    'cm': {'name': 'centimetres', 'type': 'length', 'scale': 0.01},
     'in': {'name': 'inches', 'type': 'length', 'scale': 0.0254},
     'ft': {'name': 'feet', 'type': 'length', 'scale': 0.3048},
 
-    'lb': {'name': 'pounds', 'type': 'mass', 'scale': 0.453592},
+    'm/s': {'name': 'metres per second', 'type': 'velocity', 'scale': 1.0},
+    'kph': {'name': 'kilometres per hour', 'type': 'velocity', 'scale': 3.6},
+    'in/s': {'name': 'inches per second', 'type': 'velocity', 'scale': 0.0254},
+    'ft/s': {'name': 'feet per second', 'type': 'velocity', 'scale': 0.3048},
+
+    'm/s2': {'name': 'metres per second squared', 'type': 'acceleration', 'scale': 1.0},
+    'g': {'name': 'gravity', 'type': 'acceleration', 'scale': 9.81},
+    'gal': {'name': 'cm per second squared', 'type': 'acceleration', 'scale': 0.01},
+    'in/s2': {'name': 'inches per second squared', 'type': 'acceleration', 'scale': 0.0254},
+    'ft/s2': {'name': 'feet per second squared', 'type': 'acceleration', 'scale': 0.3048},
+
+    'lb': {'name': 'pounds', 'type': 'mass', 'scale': 0.45359237},
+    'lbm': {'name': 'pounds', 'type': 'mass', 'scale': 0.45359237},
+    'kip': {'name': 'kilopound', 'type': 'mass', 'scale': 453.59237},
     'g': {'name': 'grams', 'type': 'mass', 'scale': 0.001},
     'kg': {'name': 'kilograms', 'type': 'mass', 'scale': 1.0},
     't': {'name': 'tonnes', 'type': 'mass', 'scale': 1000.0},
     'tonne': {'name': 'tonnes', 'type': 'mass', 'scale': 1000.0},
     'ton': {'name': 'short tons', 'type': 'mass', 'scale': 907.185},
 
-    'lbf': {'name': 'pounds-force', 'type': 'force', 'scale': 4.44822},
+    'Nm': {'name': 'newton metres', 'type': 'moment', 'scale': 1.0},
+    'kNm': {'name': 'kilonewton metres', 'type': 'moment', 'scale': 1000.0},
+    'MNm': {'name': 'Meganewton metres', 'type': 'moment', 'scale': 1000000.0},
+    'kip-in': {'name': 'kip-in', 'type': 'moment', 'scale': 112.985},
+    'kip-ft': {'name': 'kip-ft', 'type': 'moment', 'scale': 1355.82},
+
     'N': {'name': 'newtons', 'type': 'force', 'scale': 1.0},
+    'kN': {'name': 'newtons', 'type': 'force', 'scale': 1000.0},
+    'MN': {'name': 'newtons', 'type': 'force', 'scale': 1000000.0},
+    'kgf': {'name': 'kilograms-force', 'type': 'force', 'scale': 9.80665},
+    'lbf': {'name': 'pounds-force', 'type': 'force', 'scale': 4.44822},
+    'tonf': {'name': 'ton-force', 'type': 'force', 'scale': 8896.443230521},
+    'kipf': {'name': 'pounds-force', 'type': 'force', 'scale': 4448.22},
+    'dyna': {'name': 'dynes', 'type': 'force', 'scale': 0.00001},
+
+    'kN/m': {'name': 'kilonewtons per metre', 'type': 'force', 'scale': 1.0},
+    'plf': {'name': 'pounds per linear foot', 'type': 'line load', 'scale': 14.5939},
+
 
     'Pa': {'name': 'pascals', 'type': 'pressure', 'scale': 1.0},
     'kPa': {'name': 'pascals', 'type': 'pressure', 'scale': 1000.0},
@@ -32,7 +62,15 @@ UNITS_DICT = {
     'psi': {'name': 'pounds per square inch', 'type': 'pressure', 'scale': 6894.75729},
     'ksi': {'name': 'pounds per square inch', 'type': 'pressure', 'scale': 6894757.29},
     'bar': {'name': 'bar', 'type': 'pressure', 'scale': 100000.0},
+    'kgf/cm2': {'name': 'kilograms force per square centimetre', 'type': 'pressure', 'scale': 98066.5},
+    'ksc': {'name': 'kilograms force per square centimetre', 'type': 'pressure', 'scale': 98066.5},
     'atm': {'name': 'atmospheres', 'type': 'pressure', 'scale': 101325.0},
+
+    'N/m3': {'name': 'newtons per cubic metre', 'type': 'density', 'scale': 1.0},
+    'kg/m3': {'name': 'kilograms per cubic metre', 'type': 'mass density', 'scale': 1.0},
+    'kN/m3': {'name': 'kilonewtons per cubic metre', 'type': 'density', 'scale': 1000.0},
+    'pci': {'name': 'pounds per cubic inch', 'type': 'density', 'scale': 271447.0},
+    'pcf': {'name': 'pounds per cubic foot', 'type': 'density', 'scale': 157.09},
 
     'm2': {'name': 'square metres', 'type': 'area', 'scale': 1.0},
     'in2': {'name': 'square inches', 'type': 'area', 'scale': 0.00064516},
@@ -44,6 +82,7 @@ UNITS_DICT = {
 
     'deg': {'name': 'degrees', 'type': 'angle', 'scale': math.pi / 180.0},
     'rad': {'name': 'radians', 'type': 'angle', 'scale': 1.0},
+    'rpm': {'name': 'revolutions per minute', 'type': 'angular velocity', 'scale': math.pi / 30.0},
 
     'C': {'name': 'Celsius', 'type': 'temperature', 'scale': 1.0, 'offset': 273.15},  # Special case
     'K': {'name': 'Kelvin', 'type': 'temperature', 'scale': 1.0},
@@ -97,7 +136,7 @@ def ensure_structural_collection():
     structural_collection = bpy.data.collections.new(collection_name)
     
     # Link to scene collection
-    bpy.context.scene.collection.children.link(structural_collection)
+    bpy.context.scene.collection.children.link(structural_collection)   # type: ignore
     
     print(f"Created collection: {collection_name}")
     return structural_collection
@@ -158,7 +197,7 @@ def create_beam_from_data(beam, structural_data):
         # Circular or Polygonal
         beam_obj = create_polygonal_beam(center, start_coords, end_coords, size1, sides, distance)
     
-    beam_obj.name = beam.name
+    beam_obj.name = beam.name   # type: ignore
     
     # Move to Structural Model collection
     move_to_structural_collection(beam_obj)
@@ -174,14 +213,17 @@ def get_section_by_name(section_name, structural_data):
 
 def create_rectangular_beam(center, start_coords, end_coords, width, height, distance):
     """Create rectangular beam using cube primitive with correct orientation"""
-    with bpy.context.temp_override(**bpy.context.copy()):
+    if bpy.context.copy() is None:
+        raise ValueError("bpy.context.copy() is None")
+    
+    with bpy.context.temp_override(**bpy.context.copy()):    # type: ignore
         bpy.ops.mesh.primitive_cube_add(size=1.0, location=center)
     
     beam_obj = bpy.context.active_object
     
     # Scale to rectangular cross-section
     # Note: X=width, Y=height, Z=length (distance)
-    beam_obj.scale = (width/2, height/2, distance)
+    beam_obj.scale = (width/2, height/2, distance)   # type: ignore
     
     # Apply scale
     bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
@@ -191,13 +233,13 @@ def create_rectangular_beam(center, start_coords, end_coords, width, height, dis
     direction = (end_coords - start_coords).normalized()
     
     # Create rotation to point Z-axis along the beam direction
-    beam_obj.rotation_euler = direction.to_track_quat('Z', 'Y').to_euler()
+    beam_obj.rotation_euler = direction.to_track_quat('Z', 'Y').to_euler()   # type: ignore
     
     return beam_obj
 
 def create_polygonal_beam(center, start_coords, end_coords, diameter, sides, distance):
     """Create circular or polygonal beam using cylinder primitive with correct orientation"""
-    with bpy.context.temp_override(**bpy.context.copy()):
+    with bpy.context.temp_override(**bpy.context.copy()):     # type: ignore
         bpy.ops.mesh.primitive_cylinder_add(
             vertices=sides,
             radius=diameter/2,
@@ -210,7 +252,7 @@ def create_polygonal_beam(center, start_coords, end_coords, diameter, sides, dis
     # Rotate to align with points
     # The cylinder primitive creates with depth along Z-axis
     direction = (end_coords - start_coords).normalized()
-    beam_obj.rotation_euler = direction.to_track_quat('Z', 'Y').to_euler()
+    beam_obj.rotation_euler = direction.to_track_quat('Z', 'Y').to_euler()   # type: ignore
     
     return beam_obj
 
