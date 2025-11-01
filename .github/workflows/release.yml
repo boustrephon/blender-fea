@@ -23,7 +23,7 @@ jobs:
         run: |
           # Extract version from __init__.py using Python
           import re
-          with open("blenderfea/__init__.py", "r") as f:
+          with open("blender-fea/__init__.py", "r") as f:
               content = f.read()
               match = re.search(r'bl_info\s*=\s*\{[^{]*?\'version\'\s*:\s*\((.*?)\)[^}]*?\}', content, re.DOTALL)
               if match:
@@ -37,8 +37,8 @@ jobs:
 
       - name: Zip Blender Addon
         run: |
-          cd blenderfea  # Navigate into the add-on's directory
-          zip -r ../blenderfea.zip .  # Zip the contents of the directory
+          cd blender-fea  # Navigate into the add-on's directory
+          zip -r ../blender-fea.zip .  # Zip the contents of the directory
           cd .. # Navigate back to the root
 
       - name: Create GitHub Release
@@ -60,7 +60,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./blenderfea.zip
-          asset_name: blenderfea-${{ steps.get_version.outputs.version }}.zip
+          asset_path: ./blender-fea.zip
+          asset_name: blender-fea-${{ steps.get_version.outputs.version }}.zip
           asset_content_type: application/zip
           
