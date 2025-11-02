@@ -21,7 +21,7 @@ New properties: Add to properties.py and include in the classes tuple
 bl_info = {
     "name": "BlenderFEA",
     "author": "Andrew Mole",
-    "version": (0, 1, 0),
+    "version": (0, 1, 1),
     "blender": (4, 0, 0),
     "location": "View3D > Sidebar > BlenderFEA",
     "description": "Create, view and manage structural FEA models",

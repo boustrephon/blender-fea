@@ -4,6 +4,15 @@
 
 BlenderFEA is a Blender add-on designed to create, view, and manage structural models for finite element analysis (FEA). It provides a user-friendly interface within Blender to streamline the process of setting up and exporting models for FEA simulations.
 
+**WARNING:** This is little more than a proof of concept at present. Breaking changes WILL be made over the next few versions. It is very slow at importing large models from JSON - the "undo" functionality needs to be switched off while it is creating beams etc from a JSON file.
+
+## TO DO
+
+* Switch off UNDO while importing large models from JSON.
+* Modify JSON "Point" format to allow definition of support constraints
+* Add more information into the JSON format
+* Modify the creating of beam solids - at present it creates boxes. I want it to be able to handle I-sections etc.
+
 ## Features
 
 *   **Model Creation:** Tools for creating and editing structural models directly within Blender.
