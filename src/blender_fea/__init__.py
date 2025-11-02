@@ -29,7 +29,7 @@ DEFAULT_UNITS = {
     'pressure': 'Pa',
     'temperature': 'K',
     'velocity': 'm/s',
-    'acceleration': 'm/s^2',
+    'acceleration': 'm/s2',
     'energy': 'J',
     'power': 'W',
     'angle': 'rad',
