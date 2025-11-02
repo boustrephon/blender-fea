@@ -3,7 +3,7 @@ import os
 import sys
 
 def get_version():
-    # The __init__.py is in the current directory in GitHub Actions
+    # Check if we're in the right directory and file exists
     file_path = "__init__.py"
     
     if not os.path.exists(file_path):
@@ -12,11 +12,11 @@ def get_version():
 
     with open(file_path, "r") as f:
         content = f.read()
+        # Regex to handle both single and double quotes
         match = re.search(r'bl_info\s*=\s*\{[^{]*?["\']version["\']\s*:\s*\((.*?)\)[^}]*?\}', content, re.DOTALL)
-        # match = re.search(r'bl_info\s*=\s*\{[^{]*?\'version\'\s*:\s*\((.*?)\)[^}]*?\}', content, re.DOTALL)
         if match:
             version_tuple_str = match.group(1)
-            # Clean up the version string - handle potential quotes and spaces
+            # Clean up the version string
             version = version_tuple_str.replace(" ", "").replace(",", ".").replace("'", "").replace('"', '')
             return version
         else:
@@ -26,6 +26,8 @@ def get_version():
 if __name__ == "__main__":
     version = get_version()
     if version:
-        print(f"::set-output name=version::{version}")
+        # New method: Write to GITHUB_OUTPUT file
+        with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
+            print(f'version={version}', file=fh)
     else:
         sys.exit(1)
