@@ -3,16 +3,12 @@ import os
 import sys
 
 def get_version():
-    # Check if we're in the right directory and file exists
-    if not os.path.exists("blender-fea/__init__.py"):
-        # Try alternative path
-        if os.path.exists("__init__.py"):
-            file_path = "__init__.py"
-        else:
-            print("::error title=File Not Found::Could not find __init__.py")
-            return None
-    else:
-        file_path = "blender-fea/__init__.py"
+    # The __init__.py is in the current directory in GitHub Actions
+    file_path = "__init__.py"
+    
+    if not os.path.exists(file_path):
+        print("::error title=File Not Found::Could not find __init__.py")
+        return None
 
     with open(file_path, "r") as f:
         content = f.read()
